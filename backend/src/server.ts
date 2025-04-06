@@ -5,6 +5,8 @@ import http from 'http';
 
 const app = express();
 
+const activeUsers:string[]=[];
+
 // JSON verileri kabul edebilmesi için middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -28,7 +30,10 @@ const io = new Server(server, {
 
 // Socket.io bağlantısı kuruyoruz
 io.on('connection', (socket) => {
-  console.log('A new client has connected');
+  console.log('A new client has connected',socket.id);
+  activeUsers.push(socket.id);
+
+  io.emit("activeUsers",activeUsers);
 
   // İstemciden gelen mesajı dinliyoruz
   socket.on('message', (data) => {
@@ -39,8 +44,12 @@ io.on('connection', (socket) => {
   });
 
   // Bağlantı sona erdiğinde yapılacaklar
-  socket.on('disconnect', (socket) => {
-    console.log('A client has disconnected : ');
+  socket.on('disconnect', () => {
+    console.log('A client has disconnected :',socket.id);
+    const index = activeUsers.indexOf(socket.id);
+    if(index != -1){
+      activeUsers.splice(index,1);
+    }
   });
 });
 
