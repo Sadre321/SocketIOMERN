@@ -4,57 +4,64 @@ import { Server } from 'socket.io';
 import http from 'http';
 
 const app = express();
+const activeUsers: string[] = [];
 
-const activeUsers:string[]=[];
-
-// JSON verileri kabul edebilmesi için middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// CORS middleware: React uygulamanızın çalıştığı port
 app.use(
   cors({
-    origin: 'http://localhost:5173', // React uygulamanızın portu
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST'],
   })
 );
 
-// Farklı bir portta sunucuyu çalıştırıyoruz (3001 gibi)
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // React uygulamanızın origin'i
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST'],
   },
 });
 
-// Socket.io bağlantısı kuruyoruz
 io.on('connection', (socket) => {
-  console.log('A new client has connected',socket.id);
+  console.log('Yeni bağlantı:', socket.id);
+
   activeUsers.push(socket.id);
+  io.emit("activeUsers", activeUsers);
+  socket.emit("user", socket.id);
 
-  io.emit("activeUsers",activeUsers);
+  socket.on("sendPrivateMessage", (targetId, message) => {
+    const timestamp = new Date().toISOString();
 
-  // İstemciden gelen mesajı dinliyoruz
-  socket.on('message', (data) => {
-    console.log('Received message:', data);
+    const msgPayload = {
+      from: socket.id,
+      message,
+      timestamp,
+    };
 
-    // Mesajı tüm bağlı istemcilere yayınlıyoruz
-    io.emit('message', data);
+    io.to(targetId).emit("message", msgPayload);
+    socket.emit("message", msgPayload);
   });
 
-  // Bağlantı sona erdiğinde yapılacaklar
+  socket.on("typing", (targetId) => {
+    socket.to(targetId).emit("typing", socket.id);
+  });
+
+  socket.on("stopTyping", (targetId) => {
+    socket.to(targetId).emit("stopTyping", socket.id);
+  });
+
   socket.on('disconnect', () => {
-    console.log('A client has disconnected :',socket.id);
+    console.log('Bağlantı koptu:', socket.id);
     const index = activeUsers.indexOf(socket.id);
-    if(index != -1){
-      activeUsers.splice(index,1);
+    if (index !== -1) {
+      activeUsers.splice(index, 1);
     }
+    io.emit("activeUsers", activeUsers);
   });
 });
 
-// Sunucu 3001 portunda çalışacak
 const port = 3001;
 server.listen(port, () => {
-  console.log(`Server is listening on port ${port}`);
+  console.log(`Sunucu ${port} portunda çalışıyor.`);
 });
