@@ -17,9 +17,9 @@ Bu proje, kullanıcıların birbirleriyle gerçek zamanlı olarak mesajlaşabilm
 
 ## Teknolojiler
 
-**Frontend:** React.js, Socket.IO-client, Tailwind CSS
+**Frontend:** Vite,React.js, Socket.IO-client, Tailwind CSS,TypeScript
 
-**Backend:** Node.js, Express.js, Socket.IO
+**Backend:** Node.js, Express.js, Socket.IO,TypeScript
 
 **Veritabanı:** Yok (Veriler sadece geçici olarak bellekte tutulur)
 
